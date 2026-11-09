@@ -1,0 +1,77 @@
+.TH U-CONFIG 1 2024-08-22 u-config
+.
+.SH NAME
+u-config \- smaller, simpler, portable pkg-config clone
+.
+.SH SYNOPSIS
+.B u-config
+.RI [ options ]
+.I package
+.RI [ package " ...]"
+.
+.SH DESCRIPTION
+.B u-config
+is a small, highly portable pkg-config and pkgconf clone.
+It retrieves compiler and linker flags, version, and other dependency
+information of software packages.
+.PP
+Package metadata is retrieved from
+.RB \(lq .pc \(rq
+text files, located in a system-specific path.
+You can override the default search path with environment variables like
+.BR PKG_CONFIG_PATH .
+See
+.B ENVIRONMENT
+for more information.
+.PP
+This manual page describes the
+.B u-config
+utility in particular.
+For general information about pkg-config concepts and its file format,
+refer to manual pages provided by other projects, like
+.BR pkgconf (1)
+and
+.BR pc (5).
+.PP
+.B u-config
+supports a subset of the options of other pkg-config implementations.
+For a list of supported options, use the
+.B \-\-help
+option.
+Some of them are unique to
+.BR u-config :
+.TP
+.B \-\-newlines
+Separate arguments by line feeds instead of spaces, which is sometimes
+useful like in the fish shell or when manually examining output.
+.TP
+.B \-\-msvc\-syntax
+Translates and prints compiler arguments into a syntax compatible with the
+MSVC compiler.
+For example,
+.BI \-l " libname"
+becomes
+.BR libname.lib .
+.
+.SH ENVIRONMENT
+.B u-config
+supports all the important pkg-config run-time environment variables.
+To see which are supported, use the
+.B \-\-help
+option.
+.
+.SH EXAMPLES
+.nf
+$ u-config \-\-cflags \-\-libs foo
+\-I/usr/include/foo \-DFOO_HAS_BAR=1 \-lfoo
+.fi
+.
+.SH SEE ALSO
+.BR pkgconf (1),
+.BR pc (5)
+.
+.SH AUTHORS
+.B u-config
+was written by Chris Wellons <wellons@nullprogram.com>.
+This manual page was written by Andrea Pappacoda <andrea@pappacoda.it>
+for the Debian project (and may be used by others).

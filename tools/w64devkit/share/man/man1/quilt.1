@@ -1,0 +1,1524 @@
+.\" This is free and unencumbered software released into the public domain.
+.TH QUILT 1 2026-10-19 quilt.cpp
+.SH NAME
+quilt \- manage a series of patches
+.SH SYNOPSIS
+.SY quilt
+.RB [ \-\-quiltrc
+.IR file ]
+.RB [ \-\-trace [ =verbose ]]
+.I command
+.RI [ option " ...]"
+.RI [ argument " ...]"
+.YS
+.SY quilt
+.BR \-h | \-\-help
+.YS
+.SY quilt
+.I command
+.B \-\-help
+.YS
+.SY quilt
+.B \-\-version
+.YS
+.SH DESCRIPTION
+.B quilt
+manages a stack of patches against a source tree.
+Each patch is a file in the patches directory, and the
+.I series
+file lists the patches in the order they apply.
+.B quilt push
+applies the next patch and
+.B quilt pop
+removes the last one applied.
+The last patch applied is the
+.IR "topmost patch" ,
+which most commands work on unless told otherwise.
+.PP
+For each file in an applied patch, quilt keeps a copy of the file as it
+was before the patch, in the
+.I .pc
+directory.
+The copy is made when the patch is applied, or when the file is added to the
+patch with
+.B quilt add
+or
+.BR "quilt edit" ,
+so a file must be added to the topmost patch before it is changed.
+.B quilt refresh
+compares each copy with the current file and writes the differences, after
+the patch's header, to the patch file.
+Until then the changes are recorded nowhere.
+.PP
+quilt.cpp has its own diff and patch engines.
+It runs no other programs, except an editor and a utility given to
+.BR "quilt diff \%\-\-diff" .
+.PP
+Each command first finds the root of the tree: the current directory, or the
+nearest one above it, that holds the
+.I .pc
+directory or the patches directory.
+If there is none, the current directory is the root.
+Commands work from the root, but file names given to them are relative to
+the current directory, so quilt can be used anywhere in the tree.
+.PP
+A patch is named by its path in the patches directory, such as
+.B fix.patch
+or
+.BR crash/null.diff ,
+and quilt adds no suffix of its own.
+A name may also begin with the patches directory, as quilt prints names when
+.B \%QUILT_PATCHES_PREFIX
+is set.
+A command may be abbreviated to any prefix that names no other command, such
+as
+.B ref
+for
+.BR refresh .
+.SH OPTIONS
+These options may appear anywhere on the command line.
+The first argument that does not begin with
+.B \-
+names the command, and the other arguments go to the command in order, so
+.B quilt \-a push
+is
+.BR "quilt push \-a" .
+.TP
+\fB\-\-quiltrc\fR \fIfile\fR, \fB\-\-quiltrc=\fIfile\fR
+Read
+.I file
+instead of the usual configuration file.
+With
+.BR \- ,
+or with no value at the end of the command line, read none.
+.TP
+\fB\-\-trace\fR[\fB=verbose\fR]
+Accepted and ignored.
+.TP
+.BR \-h ", " \%\-\-help
+Without a command, list the commands, as
+.B quilt help
+does.
+.TP
+.B \%\-\-version
+Print the version, such as
+.BR 0.69 ,
+when it is the only argument.
+.PP
+Commands parse options in the manner of
+.BR \%getopt_long (3).
+Short options may be grouped, so
+.B \-fa
+is
+.BR "\-f \-a" .
+A required value is attached or is the next argument, whatever that is:
+.B \-p0
+or
+.BR "\-p 0" .
+An optional value, shown as
+.RI [ value ]
+right after its option, must be attached:
+.B \-z
+or
+.BR \-zfix.patch .
+A long option takes its value after
+.BR = ,
+or as the next argument when the value is required, and may be shortened
+to any unique prefix, such as
+.B \%\-\-leave
+for
+.BR \%\-\-leave\-rejects .
+Options and operands may come in any order, and
+.B \-\-
+ends the options.
+Every command accepts
+.B \-h
+and
+.BR \%\-\-help ,
+which print its usage.
+.PP
+Each command reads default arguments from the variable
+.BI \%QUILT_ COMMAND _ARGS\fR,
+such as
+.BR \%QUILT_PUSH_ARGS ,
+which come before those on the command line; see
+.BR ENVIRONMENT .
+.SH COMMANDS
+The commands, by task:
+.TP 10
+Stack
+.BR series ,
+.BR applied ,
+.BR unapplied ,
+.BR top ,
+.BR next ,
+.BR previous ,
+.BR push ,
+.B pop
+.TP
+Changes
+.BR new ,
+.BR add ,
+.BR edit ,
+.BR remove ,
+.BR revert ,
+.BR refresh ,
+.BR diff ,
+.BR fold ,
+.B snapshot
+.TP
+Patches
+.BR delete ,
+.BR rename ,
+.BR fork ,
+.BR import ,
+.BR header ,
+.B mail
+.TP
+Queries
+.BR files ,
+.BR patches ,
+.BR annotate ,
+.B graph
+.TP
+Other
+.BR init ,
+.BR upgrade ,
+and the unimplemented
+.BR grep ,
+.BR setup ,
+and
+.B shell
+.PP
+They are described below in alphabetical order.
+.\" ------------------------------------------------------------------
+.SS add
+.SY "quilt add"
+[\fB\-P\fR \fIpatch\fR]
+\fIfile\fR ...
+.YS
+.PP
+Add each
+.I file
+to the topmost patch, or to the named applied
+.IR patch ,
+by saving a copy of it.
+A file that does not exist yet becomes a new file in the patch.
+quilt reports a file that is already in the patch, that a patch applied
+later also changes, that lies in the patches or
+.I .pc
+directory, or that is a directory or a symbolic link, and goes on with the
+rest.
+A read-only file is made writable.
+.\" ------------------------------------------------------------------
+.SS annotate
+.SY "quilt annotate"
+[\fB\-P\fR \fIpatch\fR]
+\fIfile\fR
+.YS
+.PP
+Print
+.I file
+with a number and a tab before each line.
+The number stands for the last applied patch that changed the line, and is
+left out for lines that no patch changed.
+A legend that gives the name for each number follows, after a blank line.
+With
+.BR \-P ,
+show the file as it was after the named applied
+.IR patch .
+.\" ------------------------------------------------------------------
+.SS applied
+.SY "quilt applied"
+[\fIpatch\fR]
+.YS
+.PP
+List the applied patches from the bottom of the stack up, or only those up
+to the named
+.IR patch .
+.\" ------------------------------------------------------------------
+.SS delete
+.SY "quilt delete"
+[\fB\-r\fR]
+[\fB\-\-backup\fR]
+[\fIpatch\fR|\fB\-n\fR]
+.YS
+.PP
+Remove the topmost patch, or the named
+.IR patch ,
+from the series.
+An applied patch can be deleted only when it is the topmost: it is popped
+first, and changes not yet refreshed into it are lost.
+.TP
+.B \-r
+Remove the patch file too.
+.TP
+.B \%\-\-backup
+With
+.BR \-r ,
+rename the patch file to
+.IB patch \(ti
+instead.
+.TP
+.B \-n
+Delete the patch after the topmost patch, or the first patch when none is
+applied.
+.\" ------------------------------------------------------------------
+.SS diff
+.SY "quilt diff"
+[\fB\-p\fR \fIn\fR|\fB\-p ab\fR]
+[\fB\-u\fR|\fB\-U\fR \fInum\fR|\fB\-c\fR|\fB\-C\fR \fInum\fR]
+[\fB\-\-combine\fR \fIpatch\fR|\fB\-z\fR]
+[\fB\-R\fR]
+[\fB\-P\fR \fIpatch\fR]
+[\fB\-\-snapshot\fR]
+[\fB\-\-diff=\fIutility\fR]
+[\fB\-\-no\-timestamps\fR]
+[\fB\-\-no\-index\fR]
+[\fB\-\-sort\fR]
+[\fB\-\-color\fR[\fB=\fIwhen\fR]]
+[\fB\-\-diff\-algorithm=\fIname\fR]
+[\fIfile\fR ...]
+.YS
+.PP
+Print the changes in the topmost patch as a diff, without writing
+anything: each file's saved copy against the file as it is now.
+With
+.IR file s,
+print only those files.
+When a patch applied later also changes a file, the diff for that file
+stops at that patch's copy, and a warning follows.
+.TP
+\fB\-p\fR \fIn\fR, \fB\-p ab\fR
+Label files in the style of
+.B \-p0
+or
+.BR \-p1 ,
+or with
+.B a/
+and
+.B b/
+prefixes; see
+.BR "Patch files" .
+The default is the patch's strip level.
+.TP
+\fB\-u\fR, \fB\-U\fR \fInum\fR, \fB\-c\fR, \fB\-C\fR \fInum\fR
+Write a unified diff, the default, or a context diff, with 3 or
+.I num
+lines of context.
+.TP
+\fB\-\-combine\fR \fIpatch\fR
+Print the patches from
+.I patch
+through the topmost or named patch as one diff, where
+.B \-
+is the first applied patch.
+.TP
+.B \-z
+Print only the changes made since the patch was last refreshed.
+.TP
+.B \-R
+Reverse the diff.
+.TP
+\fB\-P\fR \fIpatch\fR
+Diff the named applied
+.I patch
+instead of the topmost.
+.TP
+.B \%\-\-snapshot
+Diff the files in the snapshot and in the applied patches against the
+snapshot taken by
+.BR "quilt snapshot" .
+.TP
+\fB\-\-diff=\fIutility\fR
+For each changed file, run
+.IR utility ,
+split into words at blanks, with the old and new file names, and print its
+output instead.
+A missing file is passed as
+.BR /dev/null .
+.TP
+\fB\-\-no\-timestamps\fR, \fB\-\-no\-index\fR
+Leave out the timestamps, or the
+.B Index:
+lines.
+.TP
+.B \%\-\-sort
+Sort the files by name, instead of following the patch file.
+.TP
+\fB\-\-color\fR[\fB=\fIwhen\fR]
+Accepted and ignored, since quilt.cpp never colors its output.
+.I when
+must be
+.BR always ,
+.BR auto ,
+.BR tty ,
+.BR never ,
+or empty.
+.TP
+\fB\-\-diff\-algorithm=\fIname\fR
+Use the diff algorithm
+.IR name ,
+instead of the one from
+.BR \%QUILT_DIFF_ALGORITHM .
+This option is a quilt.cpp extension.
+.PP
+.BR \%\-\-combine ,
+.BR \%\-\-snapshot ,
+and
+.B \-z
+exclude one another.
+.\" ------------------------------------------------------------------
+.SS edit
+.SY "quilt edit"
+\fIfile\fR ...
+.YS
+.PP
+Add each
+.I file
+to the topmost patch, unless it is already there, then open them all in the
+editor named by
+.BR EDITOR ,
+or
+.BR vi .
+The exit status is the editor's.
+.\" ------------------------------------------------------------------
+.SS files
+.SY "quilt files"
+[\fB\-v\fR]
+[\fB\-a\fR]
+[\fB\-l\fR]
+[\fB\-\-combine\fR \fIpatch\fR]
+[\fIpatch\fR]
+.YS
+.PP
+List the files that the topmost or named patch changes, sorted by name.
+For an unapplied patch, the names come from its patch file.
+.TP
+.B \-a
+List the files of each patch from the first applied patch through the
+topmost or named one.
+.TP
+.B \-l
+Put the patch name before each file name.
+.TP
+.B \-v
+Mark files the patch creates with
+.B +
+and files it deletes with
+.BR \- ,
+and with
+.BR \-a ,
+print each patch's name above its files.
+With
+.BR \-l ,
+it puts the patch name in brackets instead.
+.TP
+\fB\-\-combine\fR \fIpatch\fR
+Like
+.BR \-a ,
+but start at
+.IR patch ,
+where
+.B \-
+is the first applied patch.
+.\" ------------------------------------------------------------------
+.SS fold
+.SY "quilt fold"
+[\fB\-R\fR]
+[\fB\-q\fR]
+[\fB\-f\fR]
+[\fB\-p\fR \fIn\fR]
+.YS
+.PP
+Apply a patch read from standard input in the current directory, as part
+of the topmost patch: the files it changes are added to the topmost patch
+first, and its changes reach the patch file on the next refresh.
+If it does not apply cleanly, every file is put back as it was.
+.TP
+.B \-R
+Apply the patch in reverse.
+.TP
+.B \-q
+Print only failures.
+.TP
+.B \-f
+Keep the hunks that apply, and write the others to
+.IB file .rej
+files.
+.TP
+\fB\-p\fR \fIn\fR
+Strip
+.I n
+leading directories from file names, 1 by default.
+.\" ------------------------------------------------------------------
+.SS fork
+.SY "quilt fork"
+[\fInew_name\fR]
+.YS
+.PP
+Replace the topmost patch in the series with a copy of it named
+.IR new_name ,
+so that it can be changed while the original patch file stays as it is,
+such as for another series that uses it.
+Without
+.IR new_name ,
+a
+.BI \- N
+in front of the suffix counts up, or else
+.B \-2
+is added there:
+.B fix.patch
+becomes
+.BR fix\-2.patch ,
+then
+.BR fix\-3.patch .
+The suffixes are
+.BR .diff ,
+.BR .dif ,
+and
+.BR .patch ,
+with or without a compression suffix such as
+.BR .gz .
+.\" ------------------------------------------------------------------
+.SS graph
+.SY "quilt graph"
+[\fB\-\-all\fR]
+[\fB\-\-reduce\fR]
+[\fB\-\-lines\fR[\fB=\fInum\fR]]
+[\fB\-\-edge\-labels=files\fR]
+[\fB\-T ps\fR]
+[\fIpatch\fR]
+.YS
+.PP
+Print a graph of how the applied patches depend on each other, in the
+language of
+.BR dot (1).
+A patch depends on the closest earlier patch that changes the same file.
+The graph holds the topmost or named patch, drawn in bold, and the patches
+connected to it through the files it changes: those it depends on and
+those that depend on it.
+.TP
+.B \%\-\-all
+Graph all applied patches, leaving out those with no dependency.
+.TP
+.B \%\-\-reduce
+Leave out each edge that a longer path already implies.
+.TP
+\fB\-\-lines\fR[\fB=\fInum\fR]
+Count a dependency only where the changes overlap, given
+.I num
+lines of context, 2 by default.
+.TP
+.B \%\-\-edge\-labels=files
+Label each edge with the names of the files involved.
+.TP
+.B \-T ps
+Not implemented.
+.\" ------------------------------------------------------------------
+.SS header
+.SY "quilt header"
+[\fB\-a\fR|\fB\-r\fR|\fB\-e\fR]
+[\fB\-\-backup\fR]
+[\fB\-\-dep3\fR]
+[\fB\-\-strip\-diffstat\fR]
+[\fB\-\-strip\-trailing\-whitespace\fR]
+[\fIpatch\fR]
+.YS
+.PP
+Print the header of the topmost or named patch, the text before the first
+diff in its patch file, which usually describes the patch.
+.TP
+.B \-a
+Append standard input to the header.
+.TP
+.B \-r
+Replace the header with standard input.
+.TP
+.B \-e
+Edit the header with
+.BR EDITOR ,
+or
+.BR vi .
+.TP
+.B \%\-\-backup
+When changing the header, keep the old patch file as
+.IB patch \(ti .
+.TP
+.B \%\-\-dep3
+When editing an empty header, start from a template for the DEP-3 fields
+that Debian uses to describe patches.
+.TP
+.B \%\-\-strip\-diffstat
+Remove any diffstat from the header.
+.TP
+.B \%\-\-strip\-trailing\-whitespace
+Remove trailing whitespace from the lines of the header.
+.PP
+Without
+.BR \-a ,
+.BR \-r ,
+or
+.BR \-e ,
+the last two options change only what is printed.
+.\" ------------------------------------------------------------------
+.SS import
+.SY "quilt import"
+[\fB\-p\fR \fInum\fR]
+[\fB\-R\fR]
+[\fB\-P\fR \fIname\fR]
+[\fB\-f\fR]
+[\fB\-d\fR \fBo\fR|\fBa\fR|\fBn\fR]
+\fIpatchfile\fR ...
+.YS
+.PP
+Copy each
+.I patchfile
+into the patches directory, and add the patches in order to the series,
+after the topmost patch or at the start when none is applied.
+They are not applied.
+.TP
+\fB\-p\fR \fInum\fR
+Record strip level
+.I num
+in the series.
+.TP
+.B \-R
+Record that the patch applies in reverse.
+.TP
+\fB\-P\fR \fIname\fR
+Store the patch as
+.IR name ,
+instead of under the base name of its file.
+Only one
+.I patchfile
+may be given.
+.TP
+.B \-f
+Replace a patch of the same name that is in the series but not applied,
+keeping its series entry.
+.TP
+\fB\-d\fR \fBo\fR|\fBa\fR|\fBn\fR
+When replacing a patch, keep the old header, both headers, or the new one.
+Without
+.BR \-d ,
+the old header is kept if the new patch has none, and headers that differ
+are an error that shows the difference.
+.\" ------------------------------------------------------------------
+.SS init
+.SY "quilt init"
+.YS
+.PP
+Make the current directory the root of a tree: create the
+.I .pc
+directory, the patches directory, and an empty series file, leaving any that
+exist alone.
+This is useful before working from subdirectories, since commands such as
+.B new
+and
+.B import
+otherwise create them on first use.
+.\" ------------------------------------------------------------------
+.SS mail
+.SY "quilt mail"
+\fB\-\-mbox\fR \fIfile\fR
+\fB\-\-from\fR \fIaddress\fR|\fB\-\-sender\fR \fIaddress\fR
+[\fB\-\-prefix\fR \fIprefix\fR]
+[\fB\-\-to\fR \fIaddress\fR]
+[\fB\-\-cc\fR \fIaddress\fR]
+[\fB\-\-bcc\fR \fIaddress\fR]
+[\fIfirst_patch\fR [\fIlast_patch\fR]]
+.YS
+.PP
+Write patches from the series, applied or not, to an mbox file with one
+message per patch, in the format of
+.BR "git format\-patch \%\-\-stdout" ,
+for
+.BR git\-am (1)
+to apply.
+Without operands, or with a lone
+.BR \- ,
+write every patch.
+With one patch, write that patch.
+With two, write the patches from
+.I first_patch
+to
+.IR last_patch ,
+where
+.B \-
+stands for the first or last patch of the series.
+.PP
+The first nonblank line of a patch's header becomes the subject, after
+.RI [ prefix
+.IR n / m ],
+or
+.RI [ prefix ]
+for a lone patch, and the rest of the header becomes the message.
+The date is the modification time of the patch file.
+Empty patches are skipped with a warning.
+.TP
+\fB\-\-mbox\fR \fIfile\fR
+The file to write, which is replaced if it exists.
+As in upstream quilt, a relative name is relative to the root of the tree,
+not to the current directory.
+.TP
+\fB\-\-from\fR \fIaddress\fR, \fB\-\-sender\fR \fIaddress\fR
+The author, for the
+.B From:
+header.
+One of them is required, and
+.B \%\-\-from
+wins.
+.TP
+\fB\-\-prefix\fR \fIprefix\fR
+The subject prefix,
+.B PATCH
+by default.
+.TP
+\fB\-\-to\fR, \fB\-\-cc\fR, \fB\-\-bcc\fR \fIaddress\fR
+Add a recipient.
+Each may be given more than once.
+.PP
+For compatibility,
+.BR \-m ,
+.BR \-M ,
+.BR \%\-\-subject ,
+.BR \%\-\-reply\-to ,
+.BR \%\-\-charset ,
+and
+.B \%\-\-signature
+are accepted, with their values, and ignored.
+.B \%\-\-send
+is an error.
+.\" ------------------------------------------------------------------
+.SS new
+.SY "quilt new"
+[\fB\-p\fR \fIn\fR]
+\fIpatch\fR
+.YS
+.PP
+Add an empty
+.I patch
+to the series, after the topmost patch or at the start when none is
+applied, and make it the topmost patch.
+Its patch file is written by the first refresh.
+.TP
+\fB\-p\fR \fIn\fR
+Give the patch strip level 0, or 1, the default.
+.\" ------------------------------------------------------------------
+.SS next
+.SY "quilt next"
+[\fIpatch\fR]
+.YS
+.PP
+Print the name of the patch after the topmost patch.
+Given an unapplied
+.IR patch ,
+print that patch, and given an applied one, report it and fail.
+.\" ------------------------------------------------------------------
+.SS patches
+.SY "quilt patches"
+[\fB\-v\fR]
+[\fB\-\-color\fR[\fB=\fIwhen\fR]]
+\fIfile\fR ...
+.YS
+.PP
+List the patches in the series, applied or not, that change any of the
+.IR file s.
+For an unapplied patch, its patch file is read.
+.TP
+.B \-v
+Mark the topmost patch with
+.B =
+and the other applied patches with
+.BR + .
+.TP
+\fB\-\-color\fR[\fB=\fIwhen\fR]
+Accepted and ignored, as for
+.BR diff .
+.\" ------------------------------------------------------------------
+.SS pop
+.SY "quilt pop"
+[\fB\-afRqv\fR]
+[\fB\-\-refresh\fR]
+[\fInum\fR|\fIpatch\fR]
+.YS
+.PP
+Remove the topmost patch from the tree, putting back the saved copies of
+its files; with
+.IR num ,
+remove that many patches, and with
+.IR patch ,
+remove patches until it is the topmost.
+.PP
+First quilt checks that each patch removes cleanly: the patch file applied to
+the saved copies must give the files as they are now.
+If not, the patch has changes that were never refreshed, and pop stops.
+It also refuses to remove a patch that
+.B push \-f
+or
+.B remove
+left needing a refresh.
+.TP
+.B \-a
+Remove all applied patches.
+.TP
+.B \-f
+Remove patches without checking them, losing any changes not refreshed
+into them.
+.TP
+.B \-R
+Check each patch, cancelling an earlier
+.BR \-f .
+quilt.cpp always checks, so this does nothing else.
+.TP
+.BR \-q ", " \%\-\-quiet
+Leave out the blank lines and the lines for each file.
+.TP
+.BR \-v ", " \%\-\-verbose
+Accepted and ignored, since the files are always listed.
+.TP
+.B \%\-\-refresh
+Refresh each patch before removing it, with the arguments in
+.BR \%QUILT_REFRESH_ARGS .
+This excludes
+.BR \-f .
+.PP
+The long forms
+.B \%\-\-quiet
+and
+.B \%\-\-verbose
+are quilt.cpp extensions.
+.\" ------------------------------------------------------------------
+.SS previous
+.SY "quilt previous"
+[\fIpatch\fR]
+.YS
+.PP
+Print the name of the patch below the topmost patch, or of the patch before
+the named
+.I patch
+in the series.
+.\" ------------------------------------------------------------------
+.SS push
+.SY "quilt push"
+[\fB\-afqv\fR]
+[\fB\-m\fR[\fIstyle\fR]|\fB\-\-merge\fR[\fB=\fIstyle\fR]]
+[\fB\-\-fuzz=\fIN\fR]
+[\fB\-\-leave\-rejects\fR]
+[\fB\-\-refresh\fR]
+[\fB\-\-color\fR[\fB=\fIwhen\fR]]
+[\fInum\fR|\fIpatch\fR]
+.YS
+.PP
+Apply the next patch in the series; with
+.IR num ,
+the next
+.I num
+patches, and with
+.IR patch ,
+every patch up to and including it.
+Before applying a patch, quilt saves a copy of each file it changes.
+The strip level, and
+.B \-R
+for a reversed patch, come from the patch's series entry.
+A patch whose file does not exist is applied as an empty patch.
+.PP
+When a hunk fails to apply, quilt undoes the patch, says whether it would
+apply in reverse and so may be applied already, and stops.
+Patches applied before it stay applied.
+quilt also refuses to apply patches on top of one that
+.B \-f
+applied, until that patch is refreshed.
+.TP
+.B \-a
+Apply all the remaining patches.
+.TP
+.B \-f
+Apply a failing patch anyway: keep the hunks that apply, write the others to
+.IB file .rej
+files, and mark the patch as needing a refresh.
+Pushing stops there.
+.TP
+.BR \-q ", " \%\-\-quiet
+Leave out the blank lines and the lines for each file and hunk.
+.TP
+.BR \-v ", " \%\-\-verbose
+When undoing a failed patch, list the files restored and removed.
+.TP
+\fB\-m\fR[\fIstyle\fR], \fB\-\-merge\fR[\fB=\fIstyle\fR]
+Merge a hunk that does not match exactly into the file, between conflict
+markers, instead of rejecting it.
+.I style
+is
+.BR merge ,
+the default, or
+.BR diff3 ,
+which also shows the lines the hunk expected.
+Fuzz is not used, and a conflict still counts as a failure.
+.TP
+\fB\-\-fuzz=\fIN\fR
+Let a hunk match with up to
+.I N
+of its first and last context lines ignored, 2 by default.
+.TP
+.B \%\-\-leave\-rejects
+Keep the
+.B .rej
+files of a patch that failed without
+.BR \-f .
+.TP
+.B \%\-\-refresh
+Refresh each patch after applying it, with the arguments in
+.BR \%QUILT_REFRESH_ARGS .
+This excludes
+.BR \-f .
+.TP
+\fB\-\-color\fR[\fB=\fIwhen\fR]
+Accepted and ignored, as for
+.BR diff .
+.PP
+The long forms
+.B \%\-\-quiet
+and
+.B \%\-\-verbose
+are quilt.cpp extensions.
+.\" ------------------------------------------------------------------
+.SS refresh
+.SY "quilt refresh"
+[\fB\-p\fR \fIn\fR|\fB\-p ab\fR]
+[\fB\-u\fR|\fB\-U\fR \fInum\fR|\fB\-c\fR|\fB\-C\fR \fInum\fR]
+[\fB\-z\fR[\fInew_name\fR]]
+[\fB\-f\fR]
+[\fB\-\-no\-timestamps\fR]
+[\fB\-\-no\-index\fR]
+[\fB\-\-diffstat\fR]
+[\fB\-\-sort\fR]
+[\fB\-\-backup\fR]
+[\fB\-\-strip\-trailing\-whitespace\fR]
+[\fB\-\-diff\-algorithm=\fIname\fR]
+[\fIpatch\fR]
+.YS
+.PP
+Write the patch file of the topmost or named applied patch: its header,
+unchanged, then a diff of each file's saved copy against the file as it is
+now.
+This is how changes get into a patch.
+Refreshing also clears the mark that
+.B push \-f
+and
+.B remove
+leave, and rewrites the patch's series entry with the strip level used,
+dropping any
+.BR \-R .
+.PP
+When a patch applied later also changes one of the files, quilt refuses,
+since the file holds that patch's changes too.
+Added lines that end in whitespace get a warning.
+.TP
+\fB\-p\fR \fIn\fR, \fB\-p ab\fR
+Label files in the style of
+.B \-p0
+or
+.BR \-p1 ,
+or with
+.B a/
+and
+.B b/
+prefixes, which apply as
+.BR \-p1 ;
+see
+.BR "Patch files" .
+The default is the patch's strip level.
+Since
+.B ab
+is not recorded in the series, give it every time, such as in
+.BR \%QUILT_REFRESH_ARGS .
+.TP
+\fB\-u\fR, \fB\-U\fR \fInum\fR, \fB\-c\fR, \fB\-C\fR \fInum\fR
+Write a unified diff, the default, or a context diff, with 3 or
+.I num
+lines of context.
+.TP
+\fB\-z\fR[\fInew_name\fR]
+Leave the topmost patch as it is, and put the changes made since its last
+refresh into a new patch after it, which becomes the topmost.
+Without
+.IR new_name ,
+the new patch is named as by
+.BR fork .
+.TP
+.B \-f
+Refresh even when patches applied later change the same files.
+The diff of such a file then stops at the next patch's copy.
+.TP
+\fB\-\-no\-timestamps\fR, \fB\-\-no\-index\fR
+Leave out the timestamps, or the
+.B Index:
+lines.
+.TP
+.B \%\-\-diffstat
+Update the diffstat in the header, or add one at its end.
+.TP
+.B \%\-\-sort
+Sort the files by name, instead of following the old patch file.
+.TP
+.B \%\-\-backup
+Keep the old patch file as
+.IB patch \(ti .
+.TP
+.B \%\-\-strip\-trailing\-whitespace
+Remove trailing whitespace from the added lines, in the patch and in the
+files themselves.
+.TP
+\fB\-\-diff\-algorithm=\fIname\fR
+As for
+.BR diff .
+This option is a quilt.cpp extension.
+.\" ------------------------------------------------------------------
+.SS remove
+.SY "quilt remove"
+[\fB\-P\fR \fIpatch\fR]
+\fIfile\fR ...
+.YS
+.PP
+Take each
+.I file
+out of the topmost or named applied patch, putting back its saved copy, or
+deleting it if the patch created it.
+Since the patch file still holds the file's changes, the patch then needs a
+refresh before it can be popped.
+quilt reports a file that is not in the patch, or that a patch applied later
+also changes, and goes on with the rest.
+.\" ------------------------------------------------------------------
+.SS rename
+.SY "quilt rename"
+[\fB\-P\fR \fIpatch\fR]
+\fInew_name\fR
+.YS
+.PP
+Rename the topmost or named patch, applied or not, and its patch file.
+The new name must not be in use.
+.\" ------------------------------------------------------------------
+.SS revert
+.SY "quilt revert"
+[\fB\-P\fR \fIpatch\fR]
+\fIfile\fR ...
+.YS
+.PP
+Undo the changes to each
+.I file
+since the topmost or named applied patch was last refreshed, making the file
+as the patch file has it.
+Nothing is reverted if any file is not in the patch, or is also changed by a
+patch applied later.
+.\" ------------------------------------------------------------------
+.SS series
+.SY "quilt series"
+[\fB\-v\fR]
+[\fB\-\-color\fR[\fB=\fIwhen\fR]]
+.YS
+.PP
+List all patches in the series.
+.TP
+.B \-v
+Mark the topmost patch with
+.B =
+and the other applied patches with
+.BR + .
+.TP
+\fB\-\-color\fR[\fB=\fIwhen\fR]
+Accepted and ignored, as for
+.BR diff .
+.\" ------------------------------------------------------------------
+.SS snapshot
+.SY "quilt snapshot"
+[\fB\-d\fR]
+.YS
+.PP
+Save a copy of each file in the applied patches, replacing any earlier
+snapshot, so that
+.B quilt diff \%\-\-snapshot
+can later show what has changed since.
+.TP
+.B \-d
+Remove the snapshot instead.
+.\" ------------------------------------------------------------------
+.SS top
+.SY "quilt top"
+.YS
+.PP
+Print the name of the topmost patch.
+.\" ------------------------------------------------------------------
+.SS unapplied
+.SY "quilt unapplied"
+[\fIpatch\fR]
+.YS
+.PP
+List the patches that follow the topmost patch, or the named
+.IR patch ,
+in the series.
+.\" ------------------------------------------------------------------
+.SS upgrade
+.SY "quilt upgrade"
+.YS
+.PP
+Do nothing.
+Upstream quilt converts older
+.I .pc
+formats, and quilt.cpp knows only the current one.
+.\" ------------------------------------------------------------------
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+An error, such as a usage error or a patch that does not apply.
+.TP
+.B 2
+Nothing to do.
+.B push
+exits 2 when no patch is left to apply or the named patch is already
+applied, and
+.B pop
+when it has nothing to remove.
+.B top
+exits 2 when no patch is applied,
+.B next
+when no patch follows or the named patch is applied, and
+.B previous
+when the topmost or named patch is the first.
+.B add
+exits 2 when a file is already in the patch, and nothing else failed.
+.PP
+So
+.B while quilt push; do quilt refresh; done
+stops at the end of the series.
+.B edit
+exits with the editor's status.
+.SH ENVIRONMENT
+Variables set in the configuration file override the environment.
+.TP
+.B \%QUILT_PATCHES
+The patches directory, relative to the root or absolute;
+.B patches
+by default.
+.TP
+.B \%QUILT_SERIES
+The name of the series file;
+.B series
+by default.
+.TP
+.B \%QUILT_PC
+The directory for quilt's state, relative to the root;
+.B .pc
+by default.
+.TP
+.B \%QUILT_PATCHES_PREFIX
+If not empty, print patch names with the patches directory in front,
+relative to the current directory, such as
+.BR patches/fix.patch .
+.TP
+.BI \%QUILT_ COMMAND _ARGS
+Default arguments for
+.IR command ,
+named in capitals, such as
+.B \%QUILT_PUSH_ARGS
+for
+.BR push .
+They come before the arguments on the command line, and are split into
+words as by a shell, with quotes,
+.BI $ name
+and
+.BI ${ name }\fR,
+and backslash escapes, but nothing more.
+.TP
+.B \%QUILT_DIFF_OPTS
+Options for diffs.
+Of those of GNU
+.BR diff (1),
+quilt.cpp understands
+.BI \-U " num"\fR,
+which overrides the context given on the command line, and
+.BR \%\-\-strip\-trailing\-cr ,
+and ignores the rest.
+With
+.BR \%\-\-strip\-trailing\-cr ,
+a carriage return before a line feed is ignored, so patches to files with
+CRLF line endings are written with LF endings, and quilt.cpp applies them
+to such files keeping the CRLF endings.
+.TP
+.B \%QUILT_PATCH_OPTS
+Options for applying patches.
+Of those of GNU
+.BR patch (1),
+quilt.cpp understands
+.B \-R
+to reverse,
+.B \-s
+to be quiet,
+.B \-E
+to delete files left empty, and
+.BI \%\-\-fuzz= N\fR,
+and ignores the rest.
+.TP
+.B \%QUILT_DIFF_ALGORITHM
+The diff algorithm, unless
+.B \%\-\-diff\-algorithm
+gives one:
+.B myers
+by default, which limits its search to stay fast on large, much changed
+files;
+.BR minimal ,
+the same without the limit, for the shortest diff;
+.BR patience ,
+which lines files up on the lines that occur once in each; or
+.BR histogram ,
+which also uses lines that are merely rare.
+This variable is a quilt.cpp extension, which upstream quilt ignores.
+.TP
+.BR \%QUILT_NO_DIFF_INDEX ", " \%QUILT_NO_DIFF_TIMESTAMPS
+If not empty, act as
+.B \%\-\-no\-index
+or
+.B \%\-\-no\-timestamps
+does for every diff and refresh.
+.TP
+.B EDITOR
+The editor for
+.B edit
+and
+.BR "header \-e" ,
+split into words at blanks, so that it may hold options, and run with the
+files after them;
+.B vi
+by default.
+.TP
+.B HOME
+Where to find
+.IR .quiltrc .
+On Windows, when it is unset,
+.B \%USERPROFILE
+is used.
+.TP
+.B TMPDIR
+Where
+.B diff \-z
+and
+.B header \-e
+put temporary files;
+.I /tmp
+by default.
+.PP
+quilt.cpp ignores the upstream variables
+.BR \%QUILT_COLORS ,
+.BR \%QUILT_PAGER ,
+.BR LESS ,
+and
+.BR \%QUILT_DIFFSTAT_OPTS .
+.SH FILES
+.TP
+.I patches/
+The patch files, in the directory named by
+.BR \%QUILT_PATCHES .
+.TP
+.I patches/series
+The series file.
+quilt looks for it as
+.IR .pc/series ,
+as
+.I series
+in the root, and as
+.IR patches/series ,
+and creates it in the patches directory.
+.TP
+.I .pc/
+quilt's state, in the directory named by
+.BR \%QUILT_PC :
+.RS
+.TP
+.I applied\-patches
+The applied patches, from the bottom of the stack up.
+.TP
+.IR .version ", " .quilt_patches ", " .quilt_series
+The format version, 2, and the patches directory and series file name in
+use when
+.I .pc
+was created, which then take precedence over the environment.
+.TP
+.IR patch /
+The copies of files saved for
+.IR patch ,
+where an empty copy stands for a file that did not exist, and
+.IR .timestamp .
+.TP
+.IB patch \(tirefresh
+The mark of a patch that needs a refresh before it pops cleanly, left by
+.B push \-f
+or
+.BR remove .
+.TP
+.I .snap/
+The snapshot.
+.RE
+.TP
+.IB file .rej
+The hunks of a patch that did not apply.
+.TP
+.IB patch \(ti
+An old patch file kept by
+.BR \%\-\-backup .
+.TP
+.IR \(ti/.quiltrc ", " /etc/quilt.quiltrc
+The configuration file: the first of these that is not empty, unless
+.B \%\-\-quiltrc
+gives another.
+On Windows, the second is
+.I ..\(rsetc\(rsquilt.quiltrc
+relative to the directory of
+.BR quilt.exe .
+.SS Series file
+Each line names a patch, relative to the patches directory, and may follow
+it with options:
+.BI \-p num
+or
+.BI "\-p " num
+for the strip level, 1 by default, and
+.B \-R
+for a patch that applies in reverse.
+Blank lines are ignored, and so are comments: a line that starts with
+.BR # ,
+or the rest of a line from a space followed by
+.BR # .
+Commands change only the line of the patch concerned, keeping comments and
+formatting.
+The file may be edited by hand, as long as the applied patches stay first,
+in their order.
+Otherwise every command but
+.B pop
+refuses to run until the patches are popped.
+.SS Patch files
+A patch file begins with a header of free text, such as a description,
+which quilt keeps as it is.
+The diff starts at the first line that begins with
+.B Index:
+or
+.BR "diff \-" ,
+or at a pair of file name lines:
+.B \-\-\-
+then
+.BR +++ ,
+or for a context diff,
+.B ***
+then
+.BR \-\-\- .
+Each file's diff begins with an
+.B Index:
+line and a line of
+.BR = ,
+and its file name lines carry modification times, unless
+.B \%\-\-no\-index
+and
+.B \%\-\-no\-timestamps
+leave them out.
+.PP
+For a file
+.I f
+in a tree whose root directory is named
+.IR d ,
+the file name lines read:
+.TP
+.B \-p0
+.IB f .orig
+and
+.IR f .
+.TP
+.B \-p1
+.IB d .orig/ f
+and
+.IB d / f\fR,
+the default.
+.TP
+.B \-p ab
+.BI a/ f
+and
+.BI b/ f\fR,
+as
+.BR git\-diff (1)
+writes them.
+.PP
+A created or deleted file is
+.B /dev/null
+on its missing side.
+A binary file cannot be diffed: a changed file with a NUL byte in its first
+8192 bytes makes diff and refresh fail.
+.SS Configuration file
+The configuration file sets the variables in
+.BR ENVIRONMENT ,
+one per line, as
+.IB name = value\fR,
+optionally after
+.BR export .
+A value may be in single quotes, taken literally, or in double quotes,
+where
+.B \e"
+and
+.B \e\e
+stand for
+.B """"
+and
+.BR \e ;
+an unquoted value ends at a blank or a
+.BR # .
+quilt.cpp does not run the file as upstream quilt does, with
+.BR bash (1).
+It ignores comments and every line that is not an assignment, but applies
+each assignment, even one inside an
+.B if
+or a loop.
+The variables are put in the environment, overriding values already there.
+.SH EXAMPLES
+Make a new patch that changes a file, and describe it:
+.PP
+.RS 4
+.EX
+quilt new fix\-overflow.patch
+quilt edit src/parse.c
+quilt refresh
+quilt header \-e
+.EE
+.RE
+.PP
+Refresh every patch after the code under them has changed:
+.PP
+.RS 4
+.EX
+quilt pop \-a
+while quilt push; do quilt refresh; done
+.EE
+.RE
+.PP
+Add a patch from elsewhere, and apply it:
+.PP
+.RS 4
+.EX
+quilt import /tmp/upstream\-fix.patch
+quilt push
+.EE
+.RE
+.PP
+Apply the whole series to a Git repository as commits:
+.PP
+.RS 4
+.EX
+quilt mail \-\-mbox /tmp/series.mbox \e
+    \-\-from \(aqA. U. Thor <author@example.com>\(aq
+git \-C ../repo am /tmp/series.mbox
+.EE
+.RE
+.PP
+Draw the dependencies of all applied patches:
+.PP
+.RS 4
+.EX
+quilt graph \-\-all \-\-reduce | dot \-Tsvg >deps.svg
+.EE
+.RE
+.PP
+Settings for Debian packages, in
+.IR \(ti/.quiltrc :
+.PP
+.RS 4
+.EX
+QUILT_PATCHES=debian/patches
+QUILT_REFRESH_ARGS="\-p ab \-\-no\-timestamps \-\-no\-index"
+QUILT_DIFF_ARGS="\-p ab \-\-no\-timestamps \-\-no\-index"
+.EE
+.RE
+.SH COMPATIBILITY
+quilt.cpp follows quilt 0.69, with these differences.
+.IP \(bu 2
+The diff and patch engines are built in, and
+.B \%QUILT_DIFF_OPTS
+and
+.B \%QUILT_PATCH_OPTS
+take only the options listed in
+.BR ENVIRONMENT .
+.B refresh \%\-\-diffstat
+needs no
+.BR diffstat (1).
+.IP \(bu
+Output is never colored or paged.
+.IP \(bu
+.BR grep ,
+.BR setup ,
+.BR shell ,
+and
+.B graph \-T ps
+are not implemented.
+.IP \(bu
+.B mail
+writes an mbox for
+.BR git\-am (1),
+instead of mailing patches with a cover letter: it needs
+.B \%\-\-mbox
+and an author, refuses
+.BR \%\-\-send ,
+and ignores the options for the cover letter.
+.IP \(bu
+The configuration file is read, not run, and quilt.cpp splits
+.BI \%QUILT_ COMMAND _ARGS
+with its own subset of shell syntax.
+.IP \(bu
+.B init
+and
+.B header \%\-\-dep3
+come from Debian's quilt.
+.BR \%\-\-diff\-algorithm ,
+.BR \%QUILT_DIFF_ALGORITHM ,
+.B \%\-\-quiet
+and
+.B \%\-\-verbose
+for push and pop, and
+.B \-h
+and
+.B \%\-\-help
+for every command are quilt.cpp's own.
+.IP \(bu
+.B fork
+and
+.B refresh \-z
+count a
+.BI \- N
+suffix up in decimal, where quilt reads one with a leading zero as octal.
+A name given to
+.B refresh \-z
+may begin with the patches directory, as for
+.B new
+and
+.BR fork .
+.IP \(bu
+When
+.B import \-f
+replaces a patch that has the same header, the header is not repeated, and
+the choice of header is made for each patch on its own.
+.IP \(bu
+.B upgrade
+does nothing, and
+.B \%\-\-trace
+is ignored.
+.SH HISTORY
+quilt started as a set of scripts by Andrew Morton, which Andreas
+\%Gruenbacher rewrote.
+quilt.cpp is an independent reimplementation of it in C++, as a single
+program that also runs natively on Windows.
+.SH SEE ALSO
+.BR diff (1),
+.BR patch (1),
+.BR git\-am (1),
+.BR git\-format\-patch (1),
+.BR dot (1)
+.PP
+Upstream quilt:
+.I https://savannah.nongnu.org/projects/quilt
