@@ -1,10 +1,8 @@
 CeilingType,Value,Unit,Description
-TheoreticalPeakComputeTurbo,704.00,GFLOP/s,Intel i5-1235U Hybrid (2P@4.4GHz*32 + 8E@3.3GHz*16) Max Turbo Peak
-TheoreticalPeakComputeBase,198.40,GFLOP/s,Intel i5-1235U Hybrid (2P@1.3GHz*32 + 8E@0.9GHz*16) Base Clock Peak
-MeasuredBurstFMAPeak,558.76,GFLOP/s,Empirical AVX2 FMA Initial Burst (~0.3s) at Max Turbo
-MeasuredSustainedFMAPeak,471.68,GFLOP/s,Empirical AVX2 FMA Sustained (>=10s continuous run) Compute Roof
-MeasuredScalarPeak,37.09,GFLOP/s,Empirical Scalar Single Precision Peak
-L1Bandwidth,774.43,GB/s,STREAM Triad L1 Data Cache (~24 KB/thread working set)
-L2Bandwidth,134.06,GB/s,STREAM Triad L2 Cache (~1 MB/thread working set)
-L3Bandwidth,39.82,GB/s,STREAM Triad L3 Cache (2.88 MB/thread slice of 12 MB shared L3)
-DRAMBandwidth,20.93,GB/s,STREAM Triad DRAM (720 MB total array > 4x L3 cache)
+TheoreticalPeakComputeTurbo,380.80,GFLOP/s,Intel i5-12450HX DP FMA Max Turbo Peak
+TheoreticalPeakComputeBase,211.20,GFLOP/s,Intel i5-12450HX DP FMA Base Clock Peak
+MeasuredComputePeak,42.86,GFLOP/s,Empirical Multi-Threaded Double-Precision Compute Roof
+L1Bandwidth,719.87,GB/s,STREAM Triad L1 Data Cache (~24 KB/thread)
+L2Bandwidth,242.02,GB/s,STREAM Triad L2 Cache (~960 KB/thread)
+L3Bandwidth,66.36,GB/s,STREAM Triad L3 Cache (~2.88 MB/thread)
+DRAMBandwidth,33.23,GB/s,STREAM Triad Sustained DRAM Bandwidth (720 MB buffer)
