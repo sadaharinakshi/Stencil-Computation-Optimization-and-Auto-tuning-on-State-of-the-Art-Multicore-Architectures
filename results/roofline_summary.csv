@@ -1,32 +1,6 @@
-Kernel,Variant,Domain,AI_Ideal,AI_NoReuse,Measured_GFLOPs,Attainable_Roof_GFLOPs,Percent_Roof,LimitingCeiling
-Gauss3x3,v0_serial,2D,2.125,0.425,4.07,44.48,9.2,Memory Bandwidth Bound
-Gauss3x3,v1_omp_naive,2D,2.125,0.425,17.83,44.48,40.1,Memory Bandwidth Bound
-Gauss3x3,v2_first_touch,2D,2.125,0.425,20.37,44.48,45.8,Memory Bandwidth Bound
-Gauss3x3,v3_tiling,2D,2.125,0.425,29.50,44.48,66.3,Memory Bandwidth Bound
-Gauss3x3,v4_simd_window,2D,2.125,0.425,38.89,44.48,87.4,Memory Bandwidth Bound
-Gauss3x3,v5_prefetch_nt,2D,2.125,0.425,35.65,44.48,80.2,Memory Bandwidth Bound
-Gauss5x5,v0_serial,2D,6.125,0.471,4.49,128.20,3.5,Memory Bandwidth Bound
-Gauss5x5,v1_omp_naive,2D,6.125,0.471,26.52,128.20,20.7,Memory Bandwidth Bound
-Gauss5x5,v2_first_touch,2D,6.125,0.471,27.40,128.20,21.4,Memory Bandwidth Bound
-Gauss5x5,v3_tiling,2D,6.125,0.471,22.22,128.20,17.3,Memory Bandwidth Bound
-Gauss5x5,v4_simd_window,2D,6.125,0.471,85.04,128.20,66.3,Memory Bandwidth Bound
-Gauss5x5,v5_prefetch_nt,2D,6.125,0.471,102.76,128.20,80.2,Memory Bandwidth Bound
-Sobel,v0_serial,2D,2.000,0.308,5.59,41.86,13.4,Memory Bandwidth Bound
-Sobel,v1_omp_naive,2D,2.000,0.308,27.77,41.86,66.3,Memory Bandwidth Bound
-Sobel,v2_first_touch,2D,2.000,0.308,28.76,41.86,68.7,Memory Bandwidth Bound
-Sobel,v3_tiling,2D,2.000,0.308,25.57,41.86,61.1,Memory Bandwidth Bound
-Sobel,v4_simd_window,2D,2.000,0.308,37.58,41.86,89.8,Memory Bandwidth Bound
-Sobel,v5_prefetch_nt,2D,2.000,0.308,36.60,41.86,87.4,Memory Bandwidth Bound
-Laplacian,v0_serial,2D,0.750,0.250,3.36,15.70,21.4,Memory Bandwidth Bound
-Laplacian,v1_omp_naive,2D,0.750,0.250,12.91,15.70,82.2,Memory Bandwidth Bound
-Laplacian,v2_first_touch,2D,0.750,0.250,12.08,15.70,77.0,Memory Bandwidth Bound
-Laplacian,v3_tiling,2D,0.750,0.250,10.41,15.70,66.3,Memory Bandwidth Bound
-Laplacian,v4_simd_window,2D,0.750,0.250,14.38,15.70,91.6,Memory Bandwidth Bound
-Laplacian,v5_prefetch_nt,2D,0.750,0.250,13.88,15.70,88.4,Memory Bandwidth Bound
-Heat7pt,v0_serial,3D,0.500,0.125,3.95,10.46,37.7,Memory Bandwidth Bound
-Heat7pt,v1_omp_naive,3D,0.500,0.125,6.10,10.46,58.3,Memory Bandwidth Bound
-Heat7pt,v2_first_touch,3D,0.500,0.125,6.10,10.46,58.3,Memory Bandwidth Bound
-Heat7pt,v3_tiling,3D,0.500,0.125,8.39,10.46,80.2,Memory Bandwidth Bound
-Heat7pt,v4_simd_window,3D,0.500,0.125,5.84,10.46,55.8,Memory Bandwidth Bound
-Heat7pt,v5_prefetch_nt,3D,0.500,0.125,6.10,10.46,58.3,Memory Bandwidth Bound
-Heat7pt,v6_unroll_reg,3D,0.500,0.125,6.10,10.46,58.3,Memory Bandwidth Bound
+Variant,Measured_GFLOPs,AI_Bounds_FLOP_B,DRAM_Roof_Ideal_GFLOPs,DRAM_Roof_NoReuse_GFLOPs,Percent_of_DRAM_Ideal_Roof,Limiting_Bottleneck
+1. Serial Reference,6.75,0.125 - 0.500,16.61,4.15,40.6%,Memory Bandwidth Bound
+2. OpenMP (Naive),11.29,0.125 - 0.500,16.61,4.15,68.0%,Memory Bandwidth Bound
+3. OpenMP + First Touch,11.94,0.125 - 0.500,16.61,4.15,71.9%,Memory Bandwidth Bound
+4. OpenMP + 3D Blocked,8.87,0.125 - 0.500,16.61,4.15,53.4%,Memory Bandwidth Bound
+5. OpenMP + FT + 3D Blocked,10.02,0.125 - 0.500,16.61,4.15,60.3%,Memory Bandwidth Bound
