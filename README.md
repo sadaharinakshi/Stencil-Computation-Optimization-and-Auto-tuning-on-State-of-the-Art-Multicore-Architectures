@@ -244,19 +244,3 @@ tools\w64devkit\bin\make.exe clean
 
 ---
 
-## 9. Viva Preparation: Questions & Confident Answers
-
-**Q1: What is a 7-point stencil?**  
-> *A:* In a 3D grid, each interior cell updates using its own value plus its 6 immediate orthogonal neighbours (left, right, top, bottom, back, front). It performs 6 additions and 2 multiplications (8 FLOPs per point).
-
-**Q2: Why is the 3D stencil memory-bandwidth bound?**  
-> *A:* Its arithmetic intensity is very low (at most 0.5 FLOPs per byte transferred). The CPU can execute math much faster than RAM can supply the data.
-
-**Q3: How does 3D cache blocking work?**  
-> *A:* In large grids, entire 2D planes are too big for L2/L3 cache, causing back/front planes to be evicted before they can be reused. 3D blocking divides the grid into $BX \times BY \times BZ$ sub-cubes that fit in cache, preserving temporal locality.
-
-**Q4: What is First Touch, and what does it do on NUMA vs. UMA?**  
-> *A:* Operating systems assign physical pages to the NUMA node of the thread that first writes to them. On multi-socket NUMA systems, parallel initialisation ensures memory is local to each socket. On single-socket UMA systems, all cores share one memory controller, but parallel initialisation still speeds up array startup by ~9x through parallel page faulting.
-
-**Q5: What is the Roofline Model?**  
-> *A:* A performance model plotting GFLOP/s against Arithmetic Intensity (FLOP/byte). It has two ceilings: a slanted memory bandwidth ceiling and a flat compute ceiling. The intersection is the "ridge point". Since our stencil lies to the left of the ridge point, it is strictly memory-bound.
